@@ -1,0 +1,7 @@
+/.coverage
+/coverage.xml
+/dist/
+/.tox/
+/.ipynb_checkpoints/
+*.egg-info/
+__pycache__/

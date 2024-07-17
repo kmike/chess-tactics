@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chess-tactics"
+version = "0.0.0"
+description = "Python utilities for working with chess tactical patterns"
+authors = [{name = "Mikhail Korobov", email = "kmike84@gmail.com"}]
+readme = "README.rst"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "chess >= 1.10.0",
+]
+
+[project.urls]
+Code = "https://github.com/kmike/chess-tactics"
+
+[tool.setuptools.package-data]
+chess_tactics = ["py.typed"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
