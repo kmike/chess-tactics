@@ -21,12 +21,12 @@ def get_attackers(
     * (optional) attackers which can't move due to their king being checked
       are not included;
     """
-    in_check, target_is_the_only_checker = False, False
+    attacker_in_check, target_is_the_only_checker = False, False
     if not ignore_check:
         attacker_king = board.king(color)
         if attacker_king is not None:
             attacker_king_checkers = board.attackers(not color, attacker_king)
-            in_check = len(attacker_king_checkers) > 0
+            attacker_in_check = len(attacker_king_checkers) > 0
             target_is_the_only_checker = attacker_king_checkers == chess.SquareSet(
                 [square]
             )
@@ -47,7 +47,7 @@ def get_attackers(
             if not ignore_check:
                 # attacking king is in check, and check can't be avoided
                 # by capturing the target
-                if in_check and not target_is_the_only_checker:
+                if attacker_in_check and not target_is_the_only_checker:
                     continue
 
         attackers.add(attacker)
