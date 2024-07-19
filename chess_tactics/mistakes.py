@@ -10,7 +10,7 @@ from typing import Optional
 import chess
 
 from .exchange import get_capture_exchange_evaluation
-from .tactics import is_hanging
+from .tactics import is_forking_move, is_hanging
 
 
 def hanging_piece_not_captured(
@@ -56,6 +56,16 @@ def unfavorable_exchange(
     return _moved_piece_should_be_captured_because_it_hangs(
         board, move, best_opponent_moves
     )
+
+
+def missed_fork(
+    board: chess.Board, move: chess.Move, best_moves: list[chess.Move]
+) -> bool:
+    """Return True if a *move* is a missed fork opportunity"""
+    if is_forking_move(board, move):
+        return False
+
+    return any(is_forking_move(board, m) for m in best_moves)
 
 
 def _moved_piece_should_be_captured_because_it_hangs(

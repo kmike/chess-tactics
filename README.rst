@@ -15,7 +15,15 @@ chess-tactics
    :alt: Build Status
 
 ``chess-tactics`` is a Python library (based on python-chess)
-to work with common chess tactics: detect them, classify tactical mistakes.
+to work with common chess tactics.
+
+Included:
+
+* static exchange evaluation functions,
+* detection of tactical patterns on the board,
+* classification of common tactical mistakes, such as hanging a piece
+  or missing a fork.
+
 
 * License: MIT
 
