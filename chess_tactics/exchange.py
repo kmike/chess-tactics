@@ -1,4 +1,5 @@
 """ Static Exchange Evaluation functions """
+from typing import Optional
 
 import chess
 
@@ -11,8 +12,8 @@ def get_exchange_evaluation(
     color: chess.Color,
     square: chess.Square,
     *,
-    square_value_before_promotion: float = None,
-) -> float:
+    square_value_before_promotion: Optional[float] = None,
+) -> int:
     """
     Simulate an exchange at ``square``, started by ``color``, and return
     the likely material value change.
@@ -29,7 +30,7 @@ def get_exchange_evaluation(
 
     def _get_exchange_evaluation(
         board, color, square, square_value_before_promotion=None
-    ):
+    ) -> int:
         value = 0
         attacker = get_least_valuable_attacker(
             board, color, square, ignore_check=ignore_check
@@ -59,7 +60,7 @@ def get_exchange_evaluation(
     )
 
 
-def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> float:
+def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> int:
     """
     Return the likely material value change after *move*,
     followed by an exchange.
@@ -82,7 +83,7 @@ def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> flo
     return captured_value - exchange_value
 
 
-def _get_move_capture_value(board: chess.Board, move: chess.Move) -> float:
+def _get_move_capture_value(board: chess.Board, move: chess.Move) -> int:
     if board.is_en_passant(move):
         return 1
     else:

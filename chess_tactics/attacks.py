@@ -74,4 +74,4 @@ def in_check(board: chess.Board, color: chess.Color) -> bool:
     king = board.king(color)
     if king is None:
         return False
-    return board.attackers_mask(not color, king) is not chess.BB_EMPTY
+    return board.attackers_mask(not color, king) != chess.BB_EMPTY

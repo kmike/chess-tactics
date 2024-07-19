@@ -11,5 +11,5 @@ PIECE_VALUES = {
 }
 
 
-def get_square_value(board: chess.Board, square: chess.Square) -> float:
+def get_square_value(board: chess.Board, square: chess.Square) -> int:
     return PIECE_VALUES[board.piece_type_at(square)]
