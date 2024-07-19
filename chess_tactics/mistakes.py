@@ -9,7 +9,7 @@ from typing import Optional
 
 import chess
 
-from .exchange import get_exchange_value
+from .exchange import get_capture_exchange_evaluation
 from .tactics import is_hanging
 
 
@@ -68,4 +68,4 @@ def _moved_piece_should_be_captured_because_it_hangs(
         if not any(m.to_square == move.to_square for m in best_opponent_moves):
             return False
 
-    return get_exchange_value(board, move) < 0
+    return get_capture_exchange_evaluation(board, move) < 0

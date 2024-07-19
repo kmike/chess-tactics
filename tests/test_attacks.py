@@ -1,12 +1,12 @@
 import chess
 
-from chess_tactics.attacks import get_attackers, get_least_valuable_attacker
+from chess_tactics.attacks import get_attackers, get_least_valuable_attacker, in_check
 
 from .fens import (
-    EXAMPLE7,
-    EXAMPLE8,
-    EXAMPLE8_1,
-    EXAMPLE9,
+    EXAMPLE_07,
+    EXAMPLE_08,
+    EXAMPLE_08_1,
+    EXAMPLE_09,
     ILLEGAL_KING_ATTACK,
     NIMZOVICH_TARRASCH,
 )
@@ -16,6 +16,21 @@ def test_get_least_valuable_attacker():
     board = chess.Board(NIMZOVICH_TARRASCH)
     assert get_least_valuable_attacker(board, chess.BLACK, chess.F1) == chess.G2
     assert get_least_valuable_attacker(board, chess.BLACK, chess.C1) is None
+
+
+def test_in_check():
+    board = chess.Board(NIMZOVICH_TARRASCH)
+    assert not in_check(board, chess.WHITE)
+    assert not in_check(board, chess.BLACK)
+
+    board = chess.Board(EXAMPLE_08)
+    assert not in_check(board, chess.BLACK)
+    assert in_check(board, chess.WHITE)
+
+    # it doesn't matter whose turn is it (illegal board states are supported)
+    board.push(chess.Move.null())
+    assert not in_check(board, chess.BLACK)
+    assert in_check(board, chess.WHITE)
 
 
 class TestGetAttackers:
@@ -55,26 +70,26 @@ class TestGetAttackers:
 
     def test_king_in_check(self):
         # pawn can't be taken, king is in check
-        board = chess.Board(EXAMPLE7)
+        board = chess.Board(EXAMPLE_07)
         assert not get_attackers(board, chess.WHITE, chess.E5)
 
     def test_king_in_double_check_but_can_escape_by_taking(self):
         # king can take the pawn and escape
-        board = chess.Board(EXAMPLE8)
+        board = chess.Board(EXAMPLE_08)
         assert get_attackers(board, chess.WHITE, chess.C2) == chess.SquareSet(
             [chess.B1]
         )
 
     def test_double_check_only_king_can_take(self):
         # king can take the pawn and escape, but bishop can't
-        board = chess.Board(EXAMPLE8_1)
+        board = chess.Board(EXAMPLE_08_1)
         assert get_attackers(board, chess.WHITE, chess.C2) == chess.SquareSet(
             [chess.B1]
         )
 
     def test_checker_can_be_taken(self):
         # pawn checks the king, and king can't take it, but bishop can
-        board = chess.Board(EXAMPLE9)
+        board = chess.Board(EXAMPLE_09)
         assert get_attackers(board, chess.WHITE, chess.C2) == chess.SquareSet(
             [chess.E4]
         )

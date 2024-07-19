@@ -1,16 +1,14 @@
 import chess
 
-from .exchange import push_exchange
+from .exchange import get_exchange_evaluation
 
 
-def is_hanging(board: chess.Board, sqaure: chess.Square) -> bool:
+def is_hanging(board: chess.Board, square: chess.Square) -> bool:
     """Return True if a piece at *square* is hanging."""
-    if board.piece_type_at(sqaure) is None:
+    if board.piece_type_at(square) is None:
         return False
 
-    board_copy = board.copy()
-    push_exchange(board_copy, not board_copy.color_at(sqaure), sqaure)
-    return len(board_copy.move_stack) > len(board.move_stack)
+    return get_exchange_evaluation(board, not board.color_at(square), square) > 0
 
 
 def get_hanging_pieces(board: chess.Board, color: chess.Color) -> chess.SquareSet:

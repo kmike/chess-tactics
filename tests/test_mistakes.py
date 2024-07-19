@@ -6,11 +6,11 @@ from chess_tactics.mistakes import (
     unfavorable_exchange,
 )
 
-from .fens import EXAMPLE0, EXAMPLE1
+from .fens import EXAMPLE_00, EXAMPLE_01
 
 
 def test_hangs_moved_piece():
-    board = chess.Board(EXAMPLE1)
+    board = chess.Board(EXAMPLE_01)
     assert hangs_moved_piece(board, board.parse_san("Bd4"))
     assert not hangs_moved_piece(board, board.parse_san("Bb2"))
 
@@ -25,7 +25,7 @@ def test_hangs_moved_piece():
 
 
 def test_unfavorable_exchange():
-    board = chess.Board(EXAMPLE1)
+    board = chess.Board(EXAMPLE_01)
     assert unfavorable_exchange(board, board.parse_san("Bxe5"))
     assert not unfavorable_exchange(board, board.parse_san("Bb2"))
 
@@ -40,7 +40,7 @@ def test_unfavorable_exchange():
 
 
 def test_hanging_piece_not_captured():
-    board = chess.Board(EXAMPLE0)
+    board = chess.Board(EXAMPLE_00)
     best_moves = [board.parse_san("Bxe5")]
 
     assert hanging_piece_not_captured(board, board.parse_san("Bb2"), best_moves)
