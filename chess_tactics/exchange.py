@@ -1,4 +1,5 @@
 """ Static Exchange Evaluation functions """
+
 from typing import Optional
 
 import chess
@@ -19,7 +20,9 @@ def get_exchange_evaluation(
     the likely material value change.
 
     Both players try to be reasonable and avoid material loss, i.e.
-    unfavorable captures shouldn't happen (including the first move).
+    unfavorable captures shouldn't happen.
+
+    Ulike :func:`get_capture_exchange_evaluation`, the first move is not forced.
     """
     # If opponent's king is in check, it's an impossible exchange:
     # it must be opponent's move, not ours. The function is still useful in
