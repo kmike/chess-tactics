@@ -251,6 +251,7 @@ class TestIsFork:
         # Pieces were already hanging before the move
         ("k7/8/1q3r2/8/8/2B1N3/2K5/8 w - - 0 1", "Nd5", False),
         ("k7/2r5/1q3r2/8/8/2B1N3/2K5/8 w - - 0 1", "Nd5", True),
+        ("k7/8/1q3r2/8/8/4N1r1/2K5/4B3 w - - 0 1", "Nd5", True),
         # King fork
         ("k7/8/8/8/8/1nb5/8/2K5 w - - 0 1", "Kc2", True),
         # Blocking a check with a pseudo-fork
