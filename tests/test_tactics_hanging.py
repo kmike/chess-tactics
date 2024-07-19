@@ -2,6 +2,7 @@ import chess
 import pytest
 
 from chess_tactics.tactics import (
+    can_be_captured,
     get_hanging_pieces,
     is_hanging,
 )
@@ -25,6 +26,8 @@ from .fens import (
     EXAMPLE_13,
     EXAMPLE_14,
     FORK_12,
+    FORK_13,
+    FORK_14,
     ILLEGAL_KING_ATTACK,
     NIMZOVICH_TARRASCH,
 )
@@ -109,3 +112,36 @@ class TestHanging:
         board = chess.Board(CAPTURE_WITH_PROMOTION)
         assert is_hanging(board, chess.E8)
 
+
+class TestCanBeCaptured:
+    @pytest.mark.parametrize(
+        ["fen", "expected"],
+        [
+            (EXAMPLE_10, True),
+            (EXAMPLE_11, True),
+            (EXAMPLE_12, False),
+            (EXAMPLE_13, False),
+            (EXAMPLE_14, True),
+        ],
+    )
+    def test_basic_examples(self, fen, expected):
+        board = chess.Board(fen)
+        assert can_be_captured(board, chess.F6) is expected
+
+    def test_checked_king_and_protected_pawn(self):
+        board = chess.Board(FORK_12)
+        assert not can_be_captured(board, chess.E6)
+
+    def test_checked_king_and_protected_pawn2(self):
+        board = chess.Board(FORK_13)
+        assert not can_be_captured(board, chess.E4)
+
+    def test_checked_king_and_protected_pawn3(self):
+        board = chess.Board(FORK_14)
+        assert can_be_captured(board, chess.C6)
+        assert can_be_captured(board, chess.B7)
+        assert not can_be_captured(board, chess.E4)
+
+    def test_own_king_checked(self):
+        board = chess.Board(EXAMPLE_07)
+        assert not can_be_captured(board, chess.E5)
