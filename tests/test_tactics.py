@@ -4,6 +4,7 @@ import pytest
 from chess_tactics.tactics import (
     can_be_captured,
     get_hanging_pieces,
+    is_fork,
     is_hanging,
 )
 
@@ -25,6 +26,17 @@ from .fens import (
     EXAMPLE_12,
     EXAMPLE_13,
     EXAMPLE_14,
+    FORK_01,
+    FORK_02,
+    FORK_03,
+    FORK_04,
+    FORK_05,
+    FORK_06,
+    FORK_07,
+    FORK_08,
+    FORK_09,
+    FORK_10,
+    FORK_11,
     FORK_12,
     FORK_13,
     FORK_14,
@@ -145,3 +157,64 @@ class TestCanBeCaptured:
     def test_own_king_checked(self):
         board = chess.Board(EXAMPLE_07)
         assert not can_be_captured(board, chess.E5)
+
+
+class TestIsFork:
+    def test_basic(self):
+        board = chess.Board(FORK_01)
+        assert is_fork(board, chess.D5)
+
+        # regular attack, not a fork
+        board = chess.Board(EXAMPLE_00)
+        assert not is_fork(board, chess.C3)
+
+    def test_attacker_hanging(self):
+        board = chess.Board(FORK_02)
+        assert not is_fork(board, chess.D5)
+
+        board = chess.Board(FORK_03)
+        assert not is_fork(board, chess.D5)
+
+    def test_attacker_protected(self):
+        # can be taken only with material loss
+        board = chess.Board(FORK_04)
+        assert is_fork(board, chess.D5)
+
+        # equal trade
+        board = chess.Board(FORK_05)
+        assert not is_fork(board, chess.D5)
+
+    def test_pinned(self):
+        # Q is pinned
+        board = chess.Board(FORK_06)
+        assert is_fork(board, chess.D4)
+
+        # Q is not pinned and can capture the attacking rook
+        board = chess.Board(FORK_07)
+        assert not is_fork(board, chess.D4)
+
+        # Q is pinned, but N is protected
+        board = chess.Board(FORK_08)
+        assert not is_fork(board, chess.D4)
+
+    def test_protected(self):
+        # protected Q and R
+        board = chess.Board(FORK_09)
+        assert is_fork(board, chess.E4)
+
+        # protected Q and B
+        board = chess.Board(FORK_10)
+        assert not is_fork(board, chess.E4)
+
+    def test_winning_exchange(self):
+        # protected Q and B, but B exchange is winning
+        board = chess.Board(FORK_11)
+        assert is_fork(board, chess.E4)
+
+    def test_king_and_protected_pawn(self):
+        board = chess.Board(FORK_12)
+        assert not is_fork(board, chess.D7)
+
+    def test_king_and_protected_pawn2(self):
+        board = chess.Board(FORK_13)
+        assert not is_fork(board, chess.D7)

@@ -46,3 +46,21 @@ def can_be_captured(board: chess.Board, square: chess.Square) -> bool:
             return True
 
     return False
+
+
+def is_fork(board: chess.Board, square: chess.Square) -> bool:
+    """Return True if a piece at *square* is forking."""
+    # the piece shouldn't be hanging, and it shouldn't be possible to
+    # trade it off
+    if can_be_captured(board, square):
+        return False
+
+    # 2+ pieces attacked by this piece should be hanging
+    forked = _get_attacked_hanging(board, square)
+    return len(forked) > 1
+
+
+def _get_attacked_hanging(board: chess.Board, square: chess.Square) -> chess.SquareSet:
+    color = not board.color_at(square)
+    attacked = chess.SquareSet(board.attacks_mask(square) & board.occupied_co[color])
+    return chess.SquareSet([s for s in attacked if is_hanging(board, s)])
