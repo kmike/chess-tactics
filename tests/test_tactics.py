@@ -5,6 +5,7 @@ from chess_tactics.tactics import (
     can_be_captured,
     get_hanging_pieces,
     is_fork,
+    is_forking_move,
     is_hanging,
 )
 
@@ -218,3 +219,45 @@ class TestIsFork:
     def test_king_and_protected_pawn2(self):
         board = chess.Board(FORK_13)
         assert not is_fork(board, chess.D7)
+
+
+@pytest.mark.parametrize(
+    ["fen", "move", "expected"],
+    [
+        # basic cases
+        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nd5", True),
+        ("k7/2r5/1q3r2/8/8/4N3/K7/8 w - - 0 1", "Nd5", True),
+        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nc4", False),
+        # N is hanging
+        ("k7/3r4/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nd5", False),
+        ("k7/4n3/1q6/8/8/4N3/2K5/8 w - - 0 1", "Nd5", False),
+        # N is protected
+        ("k7/3r4/1q3r2/8/4P3/4N3/2K5/8 w - - 0 1", "Nd5", True),
+        # N can be exchanged
+        ("k7/1b6/1q3r2/8/4P3/4N3/2K5/8 w - - 0 1", "Nd5", False),
+        # Forking a pinned piece
+        ("8/8/2k5/1n4n1/B7/8/4R3/2K5 w - - 0 1", "Re5", True),
+        ("8/8/2k4p/1n4n1/B7/8/4R3/2K5 w - - 0 1", "Re5", False),
+        # Attacking somewhat defended pieces
+        ("1k6/6p1/1p3r2/2q5/8/6N1/8/1K6 w - - 0 1", "Ne4", True),
+        ("1k6/6p1/1p3b2/2q5/8/6N1/8/1K6 w - - 0 1", "Ne4", False),
+        ("1k6/6p1/1p3b2/2q5/8/6N1/8/1K3R2 w - - 0 1", "Ne4", True),
+        # King is involved
+        ("4k3/3n1p2/4p3/1B6/Q7/8/8/4K3 w - - 2 14", "Bxd7", False),
+        ("4k3/8/2n5/5p2/B3p3/8/2Q5/4K3 w - - 2 14", "Bxc6", False),
+        ("4k3/1p6/2n5/5p2/B3p3/8/2Q5/4K3 w - - 2 14", "Bxc6", False),
+        ("4k3/1r6/2n5/5p2/B3p3/8/2Q5/4K3 w - - 2 14", "Bxc6", True),
+        ("8/1r1k4/2n5/5p2/B3p3/8/8/4K3 w HAha - 2 14", "Bxc6", False),
+        # Pieces were already hanging before the move
+        ("k7/8/1q3r2/8/8/2B1N3/2K5/8 w - - 0 1", "Nd5", False),
+        ("k7/2r5/1q3r2/8/8/2B1N3/2K5/8 w - - 0 1", "Nd5", True),
+        # King fork
+        ("k7/8/8/8/8/1nb5/8/2K5 w - - 0 1", "Kc2", True),
+        # Blocking a check with a pseudo-fork
+        ("7k/1r6/3p4/8/1K1b4/N7/8/8 w - - 0 1", "Nb5", False),
+    ],
+)
+def test_is_forking_move(fen, move, expected):
+    board = chess.Board(fen)
+    move = board.parse_san(move)
+    assert is_forking_move(board, move) is expected

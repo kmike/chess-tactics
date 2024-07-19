@@ -60,6 +60,29 @@ def is_fork(board: chess.Board, square: chess.Square) -> bool:
     return len(forked) > 1
 
 
+def is_forking_move(board: chess.Board, move: chess.Move) -> bool:
+    """Return True if a move is a fork."""
+    board_after = board.copy()
+    board_after.push(move)
+
+    # the moved piece shouldn't be hanging, and it shouldn't be possible to
+    # trade it off
+    if can_be_captured(board_after, move.to_square):
+        return False
+
+    # there should be at least 2 more hanging pieces after the move,
+    # attacked by the moved piece
+    hanging_after = _get_attacked_hanging(board_after, move.to_square)
+
+    hanging_before = chess.SquareSet()
+    for piece in hanging_after:
+        if is_hanging(board, piece):
+            hanging_before.add(piece)
+
+    forked = hanging_after - hanging_before
+    return len(forked) > 1
+
+
 def _get_attacked_hanging(board: chess.Board, square: chess.Square) -> chess.SquareSet:
     color = not board.color_at(square)
     attacked = chess.SquareSet(board.attacks_mask(square) & board.occupied_co[color])
