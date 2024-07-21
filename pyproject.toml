@@ -32,6 +32,9 @@ Code = "https://github.com/kmike/chess-tactics"
 [tool.setuptools.package-data]
 chess_tactics = ["py.typed"]
 
+[tool.setuptools.packages.find]
+include = ["chess_tactics*"]
+
 [tool.isort]
 profile = "black"
 multi_line_output = 3
