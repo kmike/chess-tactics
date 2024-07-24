@@ -9,7 +9,35 @@ from chess_tactics.mistakes import (
     started_bad_trade,
 )
 
-from .fens import EXAMPLE_00, EXAMPLE_01
+from .fens import EXAMPLE_01
+
+
+@pytest.mark.parametrize(
+    ["fen", "move_san", "best_moves_san", "expected"],
+    [
+        # basic cases
+        ("1k6/8/8/4p3/8/2B5/8/1K6 w - - 0 1", "Bb2", ["Bxe5"], True),
+        ("1k6/8/8/4p3/8/2B5/8/1K6 w - - 0 1", "Bxe5", ["Bxe5"], False),
+        # piece is captured, but a different one, with the same value
+        ("1k6/8/8/p3p3/8/2B5/8/1K6 w - - 0 1", "Bxa5", ["Bxe5"], False),
+        # a piece with a lower value is captured: what to do here?
+        pytest.param(
+            "1k6/8/8/p3n3/8/2B5/8/1K6 w - - 0 1",
+            "Bxa5",
+            ["Bxe5"],
+            False,
+            marks=pytest.mark.skip(),
+        ),
+        # a piece is protected insufficiently
+        ("1k6/5n2/8/4p3/8/2B5/8/QK6 w - - 0 1", "Bb2", ["Bxe5"], True),
+        # a piece is not protected (and is not captured), but the best move
+        # is not a capture
+        ("1k6/8/8/4p3/8/2B5/8/1K6 w - - 0 1", "Bb2", ["Bb4"], False),
+    ],
+)
+def test_hanging_piece_not_captured(fen, move_san, best_moves_san, expected):
+    board, move, best_moves = _board_move_best_moves(fen, move_san, best_moves_san)
+    assert hanging_piece_not_captured(board, move, best_moves) is expected
 
 
 @pytest.mark.parametrize(
@@ -31,31 +59,23 @@ def test_hung_moved_piece(fen, move_san, best_opponent_moves_san, expected):
     assert hung_moved_piece(board, move, best_opponent_moves) is expected
 
 
-@pytest.mark.parametrize(["fen", "move_san", "best_opponent_moves_san", "expected"], [
-    # basic cases
-    (EXAMPLE_01, "Bxe5", [], True),
-    (EXAMPLE_01, "Bb2", [], False),
-
-    # hanging a piece without a capture is considered a separate mistake
-    (EXAMPLE_01, "Bd4", [], False),
-
-    # If, for some reason, recapturing is not the best move for the opponent,
-    # a move is no longer considered as a mistake of this type
-    (EXAMPLE_01, "Bxe5", ["Kb7"], False),
-])
+@pytest.mark.parametrize(
+    ["fen", "move_san", "best_opponent_moves_san", "expected"],
+    [
+        # basic cases
+        (EXAMPLE_01, "Bxe5", [], True),
+        (EXAMPLE_01, "Bb2", [], False),
+        # hanging a piece without a capture is considered a separate mistake
+        (EXAMPLE_01, "Bd4", [], False),
+        # If, for some reason, recapturing is not the best move for the opponent,
+        # a move is no longer considered as a mistake of this type
+        (EXAMPLE_01, "Bxe5", ["Kb7"], False),
+    ],
+)
 def test_started_bad_trade(fen, move_san, best_opponent_moves_san, expected):
-    board, move, best_opponent_moves = _board_move_best_moves(
-        fen, move_san, [])
+    board, move, best_opponent_moves = _board_move_best_moves(fen, move_san, [])
     best_opponent_moves = _best_opponent_moves(board, move, best_opponent_moves_san)
     assert started_bad_trade(board, move, best_opponent_moves) is expected
-
-
-
-def test_hanging_piece_not_captured():
-    board = chess.Board(EXAMPLE_00)
-    best_moves = [board.parse_san("Bxe5")]
-
-    assert hanging_piece_not_captured(board, board.parse_san("Bb2"), best_moves)
 
 
 @pytest.mark.parametrize(
@@ -122,8 +142,8 @@ def test_hanging_piece_not_captured():
             "r4b1r/pp1k1pp1/3p2bp/2pP4/1q2NB2/5N1P/PP2QPP1/R4RK1 w - - 3 15",
             "Nc3",
             ["Nfd2"],
-            True
-        )
+            True,
+        ),
     ],
 )
 def test_hung_other_piece(fen, move_san, best_moves_san, expected):
