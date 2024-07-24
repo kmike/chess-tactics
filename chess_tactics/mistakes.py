@@ -24,7 +24,8 @@ def hanging_piece_not_captured(
 
     # XXX: This probably should take in account values of the exchange
     # started by the capture, to detect cases where a wrong piece was
-    # captured. Or should it be considered a separate mistake?
+    # captured, or a wrong piece was used to capture.
+    # Or should it be considered a separate mistake?
 
     # The move which is made shouldn't be a capture of a hanging piece (??).
     if is_hanging(board, move.to_square):
@@ -91,8 +92,7 @@ def hung_other_piece(
     # one of the suggested variations
     if best_moves:
         hanging_after_best_move_value = min(
-            _new_hanging_value(board, m)
-            for m in best_moves
+            _new_hanging_value(board, m) for m in best_moves
         )
         return hanging_after_best_move_value < new_hanging_value
 
@@ -114,7 +114,9 @@ def _new_hanging_value(board: chess.Board, move: chess.Move) -> int:
 def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
     if not hanging:
         return 0
-    return max(get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging)
+    return max(
+        get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging
+    )
 
 
 def missed_fork(
