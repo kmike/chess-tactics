@@ -3,7 +3,7 @@ import pytest
 
 from chess_tactics.mistakes import (
     hanging_piece_not_captured,
-    hangs_moved_piece,
+    hung_moved_piece,
     missed_fork,
     started_bad_trade,
 )
@@ -11,19 +11,23 @@ from chess_tactics.mistakes import (
 from .fens import EXAMPLE_00, EXAMPLE_01
 
 
-def test_hangs_moved_piece():
-    board = chess.Board(EXAMPLE_01)
-    assert hangs_moved_piece(board, board.parse_san("Bd4"))
-    assert not hangs_moved_piece(board, board.parse_san("Bb2"))
-
-    # exchange is considered a separate mistake
-    assert not hangs_moved_piece(board, board.parse_san("Bxe5"))
-
-    # If, for some reason, capturing is not the best move for the opponent,
-    # a move is no longer considered as a mistake of this type
-    assert not hangs_moved_piece(
-        board, board.parse_san("Bd4"), best_opponent_moves=[chess.Move.from_uci("g7g8")]
-    )
+@pytest.mark.parametrize(
+    ["fen", "move_san", "best_opponent_moves_san", "expected"],
+    [
+        # basic cases
+        (EXAMPLE_01, "Bd4", [], True),
+        (EXAMPLE_01, "Bb2", [], False),
+        # bad trade is a sepatate mistake
+        (EXAMPLE_01, "Bxe5", [], False),
+        # If, for some reason, capturing is not the best move for the opponent,
+        # a move is no longer considered as a mistake of this type
+        (EXAMPLE_01, "Bd4", ["e4"], False),
+    ],
+)
+def test_hung_moved_piece(fen, move_san, best_opponent_moves_san, expected):
+    board, move, best_opponent_moves = _board_move_best_moves(fen, move_san, [])
+    best_opponent_moves = _best_opponent_moves(board, move, best_opponent_moves_san)
+    assert hung_moved_piece(board, move, best_opponent_moves) is expected
 
 
 @pytest.mark.parametrize(["fen", "move_san", "best_opponent_moves_san", "expected"], [
@@ -81,9 +85,7 @@ def _board_move_best_moves(
 
 
 def _best_opponent_moves(
-    board: chess.Board,
-    move: chess.Move,
-    best_opponent_moves_san: list[str]
+    board: chess.Board, move: chess.Move, best_opponent_moves_san: list[str]
 ) -> list[chess.Move]:
     board_after_move = board.copy()
     board_after_move.push(move)

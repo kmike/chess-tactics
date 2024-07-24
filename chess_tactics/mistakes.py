@@ -30,7 +30,7 @@ def hanging_piece_not_captured(
     return any(is_hanging(board, m.to_square) for m in best_moves)
 
 
-def hangs_moved_piece(
+def hung_moved_piece(
     board: chess.Board,
     move: chess.Move,
     best_opponent_moves: Optional[list[chess.Move]] = None,
@@ -53,6 +53,7 @@ def started_bad_trade(
     """Return True if *move* is a capture which starts an unfavorable exchange,
     i.e. a trade which loses material."""
     if not board.is_capture(move):
+        # see hung_moved_piece mistake
         return False
 
     return _moved_piece_should_be_captured_because_it_hangs(
