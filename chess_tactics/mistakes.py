@@ -9,7 +9,7 @@ from typing import Optional
 
 import chess
 
-from .exchange import get_capture_exchange_evaluation
+from .exchange import get_capture_exchange_evaluation, get_exchange_evaluation
 from .tactics import (
     get_hanging_pieces,
     is_forking_move,
