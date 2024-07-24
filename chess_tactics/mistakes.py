@@ -10,7 +10,11 @@ from typing import Optional
 import chess
 
 from .exchange import get_capture_exchange_evaluation
-from .tactics import is_forking_move, is_hanging
+from .tactics import (
+    get_hanging_pieces,
+    is_forking_move,
+    is_hanging,
+)
 
 
 def hanging_piece_not_captured(
@@ -59,6 +63,58 @@ def started_bad_trade(
     return _moved_piece_should_be_captured_because_it_hangs(
         board, move, best_opponent_moves
     )
+
+
+def hung_other_piece(
+    board: chess.Board,
+    move: chess.Move,
+    best_moves: Optional[list[chess.Move]] = None,
+) -> bool:
+    """Return True if *move* made one of the other pieces hang:
+
+    * either by stopping to defend it,
+    * or by exposing it to an attack,
+    * or by removing a pin on the attacker,
+    * or because of other tactical reasons.
+    """
+    # XXX: should it handle counter-attacks, captures? I.e. a defence
+    # is removed, but a piece of a higher value is attacked
+    # (or maybe captured, which is a separate case)?
+
+    new_hanging_value = _new_hanging_value(board, move)
+
+    # some new pieces should be hanging after the move
+    if not new_hanging_value:
+        return False
+
+    # less value should be hanging in at least
+    # one of the suggested variations
+    if best_moves:
+        hanging_after_best_move_value = min(
+            _new_hanging_value(board, m)
+            for m in best_moves
+        )
+        return hanging_after_best_move_value < new_hanging_value
+
+    return True
+
+
+def _new_hanging_value(board: chess.Board, move: chess.Move) -> int:
+    board_after = board.copy()
+    board_after.push(move)
+    color = board.color_at(move.from_square)
+
+    hanging_now = get_hanging_pieces(board, color)
+    hanging_after_move = get_hanging_pieces(board_after, color)
+    new_hanging_after_move = hanging_after_move - hanging_now
+    other_new_hanging_after_move = new_hanging_after_move - {move.to_square}
+    return _get_hanging_value(board_after, other_new_hanging_after_move)
+
+
+def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
+    if not hanging:
+        return 0
+    return max(get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging)
 
 
 def missed_fork(
