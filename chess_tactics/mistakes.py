@@ -42,7 +42,7 @@ def hung_moved_piece(
 ) -> bool:
     """Return True if *move* hangs a piece."""
     if board.is_capture(move):
-        # see started_best_trade mistake
+        # see started_bad_trade mistake
         return False
 
     return _moved_piece_should_be_captured_because_it_hangs(
@@ -139,4 +139,6 @@ def _moved_piece_should_be_captured_because_it_hangs(
         if not any(m.to_square == move.to_square for m in best_opponent_moves):
             return False
 
+    # fixme: consider value of other pieces when best_opponent_moves
+    # are not provided?
     return get_capture_exchange_evaluation(board, move) < 0
