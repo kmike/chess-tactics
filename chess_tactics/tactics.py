@@ -19,11 +19,7 @@ def get_hanging_pieces(board: chess.Board, color: chess.Color) -> chess.SquareSe
     king = board.king(color)
     if king is not None:
         pieces.remove(king)
-    hanging = chess.SquareSet()
-    for piece in pieces:
-        if is_hanging(board, piece):
-            hanging.add(piece)
-    return hanging
+    return chess.SquareSet(p for p in pieces if is_hanging(board, p))
 
 
 def get_hanging_after_move(
@@ -88,12 +84,7 @@ def is_forking_move(board: chess.Board, move: chess.Move) -> bool:
     # there should be at least 2 more hanging pieces after the move,
     # attacked by the moved piece
     hanging_after = _get_attacked_hanging(board_after, move.to_square)
-
-    hanging_before = chess.SquareSet()
-    for piece in hanging_after:
-        if is_hanging(board, piece):
-            hanging_before.add(piece)
-
+    hanging_before = chess.SquareSet(p for p in hanging_after if is_hanging(board, p))
     forked = hanging_after - hanging_before
     return len(forked) > 1
 

@@ -72,9 +72,10 @@ def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> int
     so the value can be negative.
     """
     color = board.color_at(move.from_square)
-    board_copy = board.copy()
     captured_value = _get_move_capture_value(board, move)
-    attacker_value = get_square_value(board_copy, move.from_square)
+    attacker_value = get_square_value(board, move.from_square)
+
+    board_copy = board.copy()
     board_copy.push(move)
 
     exchange_value = get_exchange_evaluation(
