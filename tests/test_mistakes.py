@@ -5,7 +5,7 @@ from chess_tactics.mistakes import (
     hanging_piece_not_captured,
     hangs_moved_piece,
     missed_fork,
-    unfavorable_exchange,
+    started_bad_trade,
 )
 
 from .fens import EXAMPLE_00, EXAMPLE_01
@@ -26,19 +26,24 @@ def test_hangs_moved_piece():
     )
 
 
-def test_unfavorable_exchange():
-    board = chess.Board(EXAMPLE_01)
-    assert unfavorable_exchange(board, board.parse_san("Bxe5"))
-    assert not unfavorable_exchange(board, board.parse_san("Bb2"))
+@pytest.mark.parametrize(["fen", "move_san", "best_opponent_moves_san", "expected"], [
+    # basic cases
+    (EXAMPLE_01, "Bxe5", [], True),
+    (EXAMPLE_01, "Bb2", [], False),
 
-    # hanging a piece is considered a separate mistake
-    assert not unfavorable_exchange(board, board.parse_san("Bd4"))
+    # hanging a piece without a capture is considered a separate mistake
+    (EXAMPLE_01, "Bd4", [], False),
 
     # If, for some reason, recapturing is not the best move for the opponent,
     # a move is no longer considered as a mistake of this type
-    assert not unfavorable_exchange(
-        board, board.parse_san("Be5"), best_opponent_moves=[chess.Move.from_uci("g7g8")]
-    )
+    (EXAMPLE_01, "Bxe5", ["Kb7"], False),
+])
+def test_started_bad_trade(fen, move_san, best_opponent_moves_san, expected):
+    board, move, best_opponent_moves = _board_move_best_moves(
+        fen, move_san, [])
+    best_opponent_moves = _best_opponent_moves(board, move, best_opponent_moves_san)
+    assert started_bad_trade(board, move, best_opponent_moves) is expected
+
 
 
 def test_hanging_piece_not_captured():
@@ -73,3 +78,13 @@ def _board_move_best_moves(
     move = board.parse_san(move_san)
     best_moves = [board.parse_san(m) for m in best_moves_san]
     return board, move, best_moves
+
+
+def _best_opponent_moves(
+    board: chess.Board,
+    move: chess.Move,
+    best_opponent_moves_san: list[str]
+) -> list[chess.Move]:
+    board_after_move = board.copy()
+    board_after_move.push(move)
+    return [board_after_move.parse_san(m) for m in best_opponent_moves_san]
