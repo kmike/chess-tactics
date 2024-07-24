@@ -49,20 +49,27 @@ def test_hanging_piece_not_captured():
 
 
 @pytest.mark.parametrize(
-    ["fen", "best_moves_san", "move_san", "fork_missing"],
+    ["fen", "move_san", "best_moves_san", "fork_missing"],
     [
-        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", ["Nd5"], "Nc4", True),
-        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", ["Nd5"], "Nd5", False),
+        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nc4", ["Nd5"], True),
+        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nd5", ["Nd5"], False),
         # best move is not a fork
-        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", ["Kd2"], "Nc4", False),
+        ("k7/8/1q3r2/8/8/4N3/2K5/8 w - - 0 1", "Nc4", ["Kd2"], False),
         # fork is found, but not the best one
-        ("k7/8/1q3r2/8/8/r3N3/2K5/8 w - - 0 1", ["Nd5"], "Nc4", False),
+        ("k7/8/1q3r2/8/8/r3N3/2K5/8 w - - 0 1", "Nc4", ["Nd5"], False),
         # multiple best moves
-        ("k7/8/1q3r2/8/8/r3N3/2K5/8 w - - 0 1", ["Kd2", "Nd5"], "Ng2", True),
+        ("k7/8/1q3r2/8/8/r3N3/2K5/8 w - - 0 1", "Ng2", ["Kd2", "Nd5"], True),
     ],
 )
-def test_missed_fork(fen, best_moves_san, move_san, fork_missing):
-    board = chess.Board(fen)
-    best_moves = [board.parse_san(m) for m in best_moves_san]
-    move = board.parse_san(move_san)
+def test_missed_fork(fen, move_san, best_moves_san, fork_missing):
+    board, move, best_moves = _board_move_best_moves(fen, move_san, best_moves_san)
     assert missed_fork(board, move, best_moves) is fork_missing
+
+
+def _board_move_best_moves(
+    fen: str, move_san: str, best_moves_san: list[str]
+) -> tuple[chess.Board, chess.Move, list[chess.Move]]:
+    board = chess.Board(fen)
+    move = board.parse_san(move_san)
+    best_moves = [board.parse_san(m) for m in best_moves_san]
+    return board, move, best_moves
