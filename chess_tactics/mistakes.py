@@ -99,46 +99,6 @@ def hung_other_piece(
     return True
 
 
-def _new_hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
-    """Return the max value of the newly hanging pieces after the move.
-    The piece which just moved doesn't count."""
-
-    color = board.color_at(move.from_square)
-    hanging_now = get_hanging_pieces(board, color) - {move.from_square}
-
-    # the piece itself is not considered here
-    board_after, hanging_after_move = _hanging_after_move(board, move)
-    new_hanging_after_move = hanging_after_move - hanging_now - {move.to_square}
-    return _get_hanging_value(board_after, new_hanging_after_move)
-
-
-def _hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
-    """Return the max value of a piece hanging after the move"""
-    board_after, hanging_after_move = _hanging_after_move(board, move)
-    return _get_hanging_value(board_after, hanging_after_move)
-
-
-def _hanging_after_move(
-    board: chess.Board,
-    move: chess.Move,
-) -> tuple[chess.Board, chess.SquareSet]:
-    """Return the board after the move, and the pieces which
-    are hanging after the move."""
-    color = board.color_at(move.from_square)
-    board_after = board.copy()
-    board_after.push(move)
-    hanging = get_hanging_pieces(board_after, color)
-    return board_after, hanging
-
-
-def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
-    if not hanging:
-        return 0
-    return max(
-        get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging
-    )
-
-
 def left_piece_hanging(
     board: chess.Board,
     move: chess.Move,
@@ -214,3 +174,43 @@ def _moved_piece_should_be_captured_because_it_hangs(
     # fixme: consider value of other pieces when best_opponent_moves
     # are not provided?
     return get_capture_exchange_evaluation(board, move) < 0
+
+
+def _new_hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
+    """Return the max value of the newly hanging pieces after the move.
+    The piece which just moved doesn't count."""
+
+    color = board.color_at(move.from_square)
+    hanging_now = get_hanging_pieces(board, color) - {move.from_square}
+
+    # the piece itself is not considered here
+    board_after, hanging_after_move = _hanging_after_move(board, move)
+    new_hanging_after_move = hanging_after_move - hanging_now - {move.to_square}
+    return _get_hanging_value(board_after, new_hanging_after_move)
+
+
+def _hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
+    """Return the max value of a piece hanging after the move"""
+    board_after, hanging_after_move = _hanging_after_move(board, move)
+    return _get_hanging_value(board_after, hanging_after_move)
+
+
+def _hanging_after_move(
+    board: chess.Board,
+    move: chess.Move,
+) -> tuple[chess.Board, chess.SquareSet]:
+    """Return the board after the move, and the pieces which
+    are hanging after the move."""
+    color = board.color_at(move.from_square)
+    board_after = board.copy()
+    board_after.push(move)
+    hanging = get_hanging_pieces(board_after, color)
+    return board_after, hanging
+
+
+def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
+    if not hanging:
+        return 0
+    return max(
+        get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging
+    )
