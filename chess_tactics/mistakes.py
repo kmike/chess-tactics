@@ -8,6 +8,7 @@ if a move is actually a mistake.
 from typing import Optional
 
 import chess
+import chess.engine
 
 from .exchange import (
     get_capture_exchange_evaluation,
@@ -159,6 +160,65 @@ def missed_fork(
         return False
 
     return any(is_forking_move(board, m) for m in best_moves)
+
+
+def hung_mate_n(
+    pov_white_score: chess.engine.Score,
+    pov_white_best_score: chess.engine.Score,
+    n: int,
+) -> bool:
+    """Return True if the player allowed mate in *n*"""
+    m = chess.engine.Mate(-n)
+    return pov_white_score == m and pov_white_best_score > m
+
+
+def hung_mate_n_plus(
+    pov_white_score: chess.engine.Score,
+    pov_white_best_score: chess.engine.Score,
+    n: int,
+) -> bool:
+    """
+    Return True if the player allowed mate in *n+*, while the best
+    outcome was not to get mated at all.
+    """
+
+    def _getting_mated(score: chess.engine.Score) -> bool:
+        mate = score.mate()
+        return mate is not None and mate < 0
+
+    return (
+        _getting_mated(pov_white_score)
+        and pov_white_score >= chess.engine.Mate(-n)
+        and not _getting_mated(pov_white_best_score)
+    )
+
+
+def missed_mate_n(
+    pov_white_score: chess.engine.Score,
+    pov_white_best_score: chess.engine.Score,
+    n: int,
+) -> bool:
+    """Return True if the player missed mate in *n*"""
+    m = chess.engine.Mate(n)
+    return pov_white_best_score == m and pov_white_score < m
+
+
+def missed_mate_n_plus(
+    pov_white_score: chess.engine.Score,
+    pov_white_best_score: chess.engine.Score,
+    n: int,
+) -> bool:
+    """Return True if the player missed mate in *n+*."""
+
+    def _mating(score: chess.engine.Score) -> bool:
+        mate = score.mate()
+        return mate is not None and mate > 0
+
+    return (
+        not _mating(pov_white_score)
+        and _mating(pov_white_best_score)
+        and pov_white_best_score <= chess.engine.Mate(n)
+    )
 
 
 def _moved_piece_should_be_captured_because_it_hangs(

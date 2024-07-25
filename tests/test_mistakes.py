@@ -2,13 +2,18 @@ from typing import Optional
 
 import chess
 import pytest
+from chess.engine import Cp, Mate
 
 from chess_tactics.mistakes import (
     hanging_piece_not_captured,
+    hung_mate_n,
+    hung_mate_n_plus,
     hung_moved_piece,
     hung_other_piece,
     left_piece_hanging,
     missed_fork,
+    missed_mate_n,
+    missed_mate_n_plus,
     started_bad_trade,
 )
 
@@ -590,3 +595,83 @@ def _best_opponent_moves(
     board_after_move = board.copy()
     board_after_move.push(move)
     return [board_after_move.parse_san(m) for m in best_opponent_moves_san]
+
+
+@pytest.mark.parametrize(
+    ["score", "best_score", "n", "expected"],
+    [
+        # Mates in 1
+        (Cp(-100), Cp(0), 1, False),
+        (Mate(-1), Cp(0), 1, True),
+        (Mate(-1), Mate(-1), 1, False),
+        (Mate(-1), Mate(1), 1, True),
+        (Mate(-1), Mate(-2), 1, True),
+        (Mate(-2), Mate(-4), 1, False),
+        (Mate(1), Cp(0), 1, False),
+        # Mates in 2+
+        (Mate(-2), Mate(-4), 2, True),
+        (Mate(-2), Mate(-2), 2, False),
+        (Mate(-1), Mate(-2), 2, False),
+        (Mate(-1), Mate(2), 2, False),
+        (Mate(-1), Mate(-3), 2, False),
+        (Mate(-5), Cp(0), 5, True),
+        (Mate(-4), Cp(0), 5, False),
+        (Mate(-6), Cp(0), 5, False),
+    ],
+)
+def test_hung_mate_n(score, best_score, n, expected):
+    assert hung_mate_n(score, best_score, n) is expected
+
+
+@pytest.mark.parametrize(
+    ["score", "best_score", "n", "expected"],
+    [
+        # Mates in 1
+        (Cp(-100), Cp(0), 1, False),
+        (Mate(-1), Cp(0), 1, True),
+        (Mate(-1), Mate(-1), 1, False),
+        (Mate(-1), Mate(1), 1, True),
+        (Mate(-1), Mate(-2), 1, False),
+        (Mate(-2), Mate(-4), 1, False),
+        # Mates in 3+
+        (Mate(-2), Mate(-4), 3, False),
+        (Mate(-2), Cp(0), 3, False),
+        (Mate(-3), Cp(0), 3, True),
+        (Mate(-10), Cp(0), 3, True),
+    ],
+)
+def test_hung_mate_n_plus(score, best_score, n, expected):
+    assert hung_mate_n_plus(score, best_score, n) is expected
+
+
+@pytest.mark.parametrize(
+    ["score", "best_score", "n", "expected"],
+    [
+        (Cp(100), Mate(1), 1, True),
+        (Cp(100), Mate(2), 1, False),
+        (Mate(2), Mate(2), 1, False),
+        (Mate(2), Mate(1), 1, True),
+        (Mate(-1), Mate(1), 1, True),
+        (Mate(1), Mate(1), 1, False),
+        (Mate(2), Mate(2), 2, False),
+        (Mate(1), Mate(1), 2, False),
+        (Mate(5), Mate(2), 2, True),
+    ],
+)
+def test_missed_mate_n(score, best_score, n, expected):
+    assert missed_mate_n(score, best_score, n) is expected
+
+
+@pytest.mark.parametrize(
+    ["score", "best_score", "n", "expected"],
+    [
+        (Cp(100), Mate(4), 2, True),
+        (Cp(100), Mate(2), 2, True),
+        (Cp(100), Mate(1), 2, False),
+        (Mate(1), Mate(1), 2, False),
+        (Mate(4), Mate(5), 2, False),
+        (Mate(6), Mate(3), 2, False),
+    ],
+)
+def test_missed_mane_n_plus(score, best_score, n, expected):
+    assert missed_mate_n_plus(score, best_score, n) is expected
