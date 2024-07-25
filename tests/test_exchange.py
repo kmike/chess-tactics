@@ -4,6 +4,7 @@ import pytest
 from chess_tactics.exchange import (
     get_capture_exchange_evaluation,
     get_exchange_evaluation,
+    get_move_captured_value,
 )
 
 from .fens import (
@@ -171,3 +172,18 @@ def test_get_exchange_evaluation_basic():
     board = chess.Board(NIMZOVICH_TARRASCH)
     assert get_exchange_evaluation(board, chess.BLACK, chess.F1) == 2
     assert get_exchange_evaluation(board, chess.BLACK, chess.E4) == 0
+
+
+@pytest.mark.parametrize(
+    ["fen", "move_san", "value"],
+    [
+        ("1k6/6b1/8/n3p1Pp/8/2B5/8/1K6 w - h6 0 1", "Bxe5", 1),
+        ("1k6/6b1/8/n3p1Pp/8/2B5/8/1K6 w - h6 0 1", "Bxa5", 3),
+        ("1k6/6b1/8/n3p1Pp/8/2B5/8/1K6 w - h6 0 1", "Bb4", 0),
+        ("1k6/6b1/8/n3p1Pp/8/2B5/8/1K6 w - h6 0 1", "gxh6", 1),
+    ],
+)
+def test_get_move_captured_value(fen, move_san, value):
+    board = chess.Board(fen)
+    move = board.parse_san(move_san)
+    assert get_move_captured_value(board, move) == value

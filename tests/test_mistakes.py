@@ -1,3 +1,5 @@
+from typing import Optional
+
 import chess
 import pytest
 
@@ -5,6 +7,7 @@ from chess_tactics.mistakes import (
     hanging_piece_not_captured,
     hung_moved_piece,
     hung_other_piece,
+    left_piece_hanging,
     missed_fork,
     started_bad_trade,
 )
@@ -409,12 +412,175 @@ def test_missed_fork(fen, move_san, best_moves_san, fork_missing):
     assert missed_fork(board, move, best_moves) is fork_missing
 
 
+@pytest.mark.parametrize(
+    ["fen", "move_san", "best_moves_san", "expected"],
+    [
+        # Basic cases
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Kc1", ["Bxg7"], True),
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Bxg7", ["Bxg7"], False),
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Bxf4", ["Bxf4"], False),
+        # two pieces hanging, more valuable should be protected / moved
+        ("7k/8/5b2/8/7P/8/1N6/3K4 w - - 0 1", "Nc4", ["Nd3"], False),
+        ("7k/8/5b2/8/7P/8/1N6/3K4 w - - 0 1", "h5", ["Nd3"], True),
+        # if possible, both should be protected - saving one is not enough
+        ("7k/8/5b2/8/3N3P/8/8/3K4 w - - 0 1", "Nf3", ["Nf3"], False),
+        ("7k/8/5b2/8/3N3P/8/8/3K4 w - - 0 1", "Nc6", ["Nf3"], True),
+        # Basic cases should work if best_moves are not available
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Kc1", None, True),
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Bxg7", None, False),
+        ("k7/6b1/8/4B3/8/8/8/1K6 w - - 0 1", "Bxf4", None, False),
+        # Trading off the hanging piece is a way to save it
+        ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxg7", ["Bxa7"], False),
+        ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxg7", None, False),
+        # it matters what to trade for
+        ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxf2", ["Bxa7"], True),
+        # If there are multiple pieces hanging, saving one of them
+        # is better than saving nothing.
+        pytest.param(
+            "kr6/pn5p/1p4N1/2p5/3N4/8/8/1K6 w - - 0 1",
+            "Kc2",
+            ["Nb5"],
+            True,
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+        pytest.param("kr6/pn5p/1p4N1/2p5/3N4/8/8/1K6 w - - 0 1", "Ne6", ["Nb5"], False),
+        # Similar examples with multiple pieces, but different outcome,
+        # because by setting up re-capture we're getting a pawn.
+        ("kr6/pn5p/1p4p1/2p2R2/3R4/8/8/1K6 w - - 0 1", "Kc2", ["Rdd5"], True),
+        ("kr6/pn5p/1p4p1/2p2R2/3R4/8/8/1K6 w - - 0 1", "Rdf4", ["Rdd5"], False),
+        pytest.param(
+            "kr6/pn5p/1p4p1/2p2R2/3R4/8/8/1K6 w - - 0 1",
+            "Rd7",
+            ["Rdd5"],
+            False,
+            marks=pytest.mark.xfail(
+                reason="Rd7 counter-attacks h7, but it doesn't count (as it's not "
+                "implemented), while Rdd5 changes the exchange value at f5, "
+                "which counts. So, the heuristic wrongly thinks we haven't "
+                "saved enough material."
+            ),
+        ),
+        # If piece of different value hang, the most valuable should be
+        # saved first
+        ("kr6/pn5p/1p4p1/2p2B2/3R4/8/8/1K6 w - - 0 1", "Rf4", ["Rd5"], False),
+        ("kr6/pn5p/1p4p1/2p2B2/3R4/8/8/1K6 w - - 0 1", "Bg4", ["Rd5"], True),
+        # Best move is not to save a piece
+        ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Qxa4", ["Qxa4"], False),
+        ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Bd6", ["Qxa4"], False),
+        ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Qc6", ["Qxa4"], True),
+        ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Bxa4", ["Qxa4"], False),
+        ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Qd4", ["Qxa4"], True),
+        # Assorted example 1
+        (
+            "rn1qkb1r/pp2ppp1/2p2np1/8/2pP4/2N5/PPQ1PPPP/R1B1KB1R w KQkq - 0 8",
+            "a4",
+            ["e3"],
+            True,
+        ),
+        # Assorted example 2
+        (
+            "r1b2rk1/pp2n1pp/1qnp4/5p2/8/2N2NP1/PPP1PPBP/R2QK2R w KQ - 4 10",
+            "a3",
+            ["b3"],
+            True,
+        ),
+        # Assorted example 3, pins everywhere
+        (
+            "5rk1/pRQ3pp/6r1/8/3nN3/P4PP1/q3P1KP/4R3 w - - 3 28",
+            "Kf2",
+            # Pin one of the attackers, but e2 pawn still hangs.
+            # What should we do here? It's not saving value, but there are
+            # fewer pieces hanging.
+            ["Rb8"],
+            False,
+        ),
+        (
+            "5rk1/pRQ3pp/6r1/8/3nN3/P4PP1/q3P1KP/4R3 w - - 3 28",
+            "Kf2",
+            # check + block the sight of an attacker, but the moved piece hangs
+            ["Nf6+"],
+            False,
+        ),
+        (
+            "5rk1/pRQ3pp/6r1/8/3nN3/P4PP1/q3P1KP/4R3 w - - 3 28",
+            "Kf2",
+            # the suggested move is to protect one of the pawns, but not both
+            ["Kf1"],
+            False,
+        ),
+        # Assorted example 4, pinned piece
+        (
+            "5rk1/R5pp/4r3/8/2n1N3/P4PP1/4PK1P/8 w - - 1 35",
+            "a4",
+            # best is to move the piece
+            ["Ng5"],
+            True,
+        ),
+        (
+            "5rk1/R5pp/4r3/8/2n1N3/P4PP1/4PK1P/8 w - - 1 35",
+            "a4",
+            # best is to get out of pin
+            ["Kg1"],
+            True,
+        ),
+        # Assorted example 5 - this is hanging other piece
+        # (e2 was not hanging before the move)
+        (
+            "5rk1/R5pp/8/8/P1n1r3/5PP1/4PK1P/8 w - - 0 36",
+            "Kg2",
+            ["Rd7"],
+            False,
+        ),
+        # Assorted example 6 - best is to counter-attack (with check)
+        (
+            "r1b3k1/pp2q3/8/7p/3Np1p1/2QnP1BP/PP4P1/5RK1 w - - 2 24",
+            "Bf4",
+            ["Qb3+"],
+            True,
+        ),
+        # Assorted example 7 - hanging piece could be captured with a check
+        (
+            "1r3rk1/p1p3pp/4p3/5p2/1b1P4/2N2q2/PP3P1P/R1B1KQR1 w Q - 4 17",
+            "Qg2",
+            ["Bd2"],
+            True,
+        ),
+        # Assorted example 8 - best is to counter-attack
+        pytest.param(
+            "r3k2r/ppq1pp2/2n2bpp/1B1p4/3Pb3/1PP2N2/P2N1PPP/R2QR1K1 b kq - 2 13",
+            "h5",
+            ["a6"],
+            True,
+            marks=pytest.mark.xfail(),
+        ),
+        # this one is actually important - you can save value by trading the
+        # hanging piece
+        pytest.param(
+            "r3k2r/ppq1pp2/2n2bpp/1B1p4/3Pb3/1PP2N2/P2N1PPP/R2QR1K1 b kq - 2 13",
+            "h5",
+            ["Bxf3"],
+            True,
+        ),
+    ],
+)
+def test_left_piece_hanging(fen, move_san, best_moves_san, expected):
+    board, move, best_moves = _board_move_best_moves(fen, move_san, best_moves_san)
+    if left_piece_hanging(board, move, best_moves) is not expected:
+        print(board.fen())
+        print(board)
+        print(f"{move=} {best_moves=} {expected=}")
+        raise AssertionError()
+
+
 def _board_move_best_moves(
-    fen: str, move_san: str, best_moves_san: list[str]
+    fen: str, move_san: str, best_moves_san: Optional[list[str]]
 ) -> tuple[chess.Board, chess.Move, list[chess.Move]]:
     board = chess.Board(fen)
     move = board.parse_san(move_san)
-    best_moves = [board.parse_san(m) for m in best_moves_san]
+    if best_moves_san is None:
+        best_moves = None
+    else:
+        best_moves = [board.parse_san(m) for m in best_moves_san]
     return board, move, best_moves
 
 

@@ -9,12 +9,12 @@ from typing import Optional
 
 import chess
 
-from .exchange import get_capture_exchange_evaluation, get_exchange_evaluation
-from .tactics import (
-    get_hanging_pieces,
-    is_forking_move,
-    is_hanging,
+from .exchange import (
+    get_capture_exchange_evaluation,
+    get_exchange_evaluation,
+    get_move_captured_value,
 )
+from .tactics import get_hanging_pieces, is_forking_move, is_hanging
 
 
 def hanging_piece_not_captured(
@@ -82,7 +82,7 @@ def hung_other_piece(
     # is removed, but a piece of a higher value is attacked
     # (or maybe captured, which is a separate case)?
 
-    new_hanging_value = _new_hanging_value(board, move)
+    new_hanging_value = _new_hanging_after_move_value(board, move)
 
     # some new pieces should be hanging after the move
     if not new_hanging_value:
@@ -92,23 +92,43 @@ def hung_other_piece(
     # one of the suggested variations
     if best_moves:
         hanging_after_best_move_value = min(
-            _new_hanging_value(board, m) for m in best_moves
+            _new_hanging_after_move_value(board, m) for m in best_moves
         )
         return hanging_after_best_move_value < new_hanging_value
 
     return True
 
 
-def _new_hanging_value(board: chess.Board, move: chess.Move) -> int:
+def _new_hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
+    """Return the max value of the newly hanging pieces after the move.
+    The piece which just moved doesn't count."""
+
+    color = board.color_at(move.from_square)
+    hanging_now = get_hanging_pieces(board, color) - {move.from_square}
+
+    # the piece itself is not considered here
+    board_after, hanging_after_move = _hanging_after_move(board, move)
+    new_hanging_after_move = hanging_after_move - hanging_now - {move.to_square}
+    return _get_hanging_value(board_after, new_hanging_after_move)
+
+
+def _hanging_after_move_value(board: chess.Board, move: chess.Move) -> int:
+    """Return the max value of a piece hanging after the move"""
+    board_after, hanging_after_move = _hanging_after_move(board, move)
+    return _get_hanging_value(board_after, hanging_after_move)
+
+
+def _hanging_after_move(
+    board: chess.Board,
+    move: chess.Move,
+) -> tuple[chess.Board, chess.SquareSet]:
+    """Return the board after the move, and the pieces which
+    are hanging after the move."""
+    color = board.color_at(move.from_square)
     board_after = board.copy()
     board_after.push(move)
-    color = board.color_at(move.from_square)
-
-    hanging_now = get_hanging_pieces(board, color)
-    hanging_after_move = get_hanging_pieces(board_after, color)
-    new_hanging_after_move = hanging_after_move - hanging_now
-    other_new_hanging_after_move = new_hanging_after_move - {move.to_square}
-    return _get_hanging_value(board_after, other_new_hanging_after_move)
+    hanging = get_hanging_pieces(board_after, color)
+    return board_after, hanging
 
 
 def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
@@ -117,6 +137,58 @@ def _get_hanging_value(board: chess.Board, hanging: chess.SquareSet) -> int:
     return max(
         get_exchange_evaluation(board, not board.color_at(s), s) for s in hanging
     )
+
+
+def left_piece_hanging(
+    board: chess.Board,
+    move: chess.Move,
+    best_moves: Optional[list[chess.Move]] = None,
+) -> bool:
+    """
+    Return if a *move* failed to address an issue with a hanging piece:
+
+    * there was a hanging piece on the board (e.g. because opponent just
+      attacked it),
+    * *move* still left it hanging (by not moving it, and not defending it),
+    * the best move was not to let it hang.
+    """
+    if best_moves and move in best_moves:
+        return False
+
+    # fixme: counter-attacks?
+    # fixme: saving one of the pieces when more than 1 is hanging
+    # is not considered enough if their value is the same
+    color = board.color_at(move.from_square)
+    hanging_now = get_hanging_pieces(board, color)
+
+    # there should be some hanging pieces now
+    if not hanging_now:
+        return False
+
+    hanging_after_move_value = _hanging_after_move_value(
+        board, move
+    ) - get_move_captured_value(board, move)
+
+    if not best_moves:
+        # if best_moves are not passed, assume hanging pieces can be saved
+        hanging_after_best_move_value = 0
+    else:
+        hanging_after_best_move_value = min(
+            _hanging_after_move_value(board, m) - get_move_captured_value(board, m)
+            for m in best_moves
+        )
+
+        # if we fail to capture more, but still saved the hanging piece, it's
+        # a separate mistake.
+        hanging_after_best_move_value = max(hanging_after_best_move_value, 0)
+
+        # Basic logic for now. It could happen that
+        # hanging_after_best_move_value >= hanging_now_value, i.e. the best
+        # move is not about saving those pieces.
+        # In this case, we return True only if the value hanged by the actual
+        # move is even more than the hanging_after_best_move_value.
+
+    return hanging_after_best_move_value < hanging_after_move_value
 
 
 def missed_fork(

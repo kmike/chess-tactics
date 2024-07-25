@@ -42,7 +42,7 @@ def get_exchange_evaluation(
             board_copy = board.copy()
             # TODO: handle promotions properly
             move = chess.Move(from_square=attacker, to_square=square)
-            captured_value = _get_move_capture_value(board, move)
+            captured_value = get_move_captured_value(board, move)
             board_copy.push(move)
             recapture_value = _get_exchange_evaluation(board_copy, not color, square)
             if captured_value < recapture_value:
@@ -72,7 +72,7 @@ def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> int
     so the value can be negative.
     """
     color = board.color_at(move.from_square)
-    captured_value = _get_move_capture_value(board, move)
+    captured_value = get_move_captured_value(board, move)
     attacker_value = get_square_value(board, move.from_square)
 
     board_copy = board.copy()
@@ -87,7 +87,8 @@ def get_capture_exchange_evaluation(board: chess.Board, move: chess.Move) -> int
     return captured_value - exchange_value
 
 
-def _get_move_capture_value(board: chess.Board, move: chess.Move) -> int:
+def get_move_captured_value(board: chess.Board, move: chess.Move) -> int:
+    """Return value of a piece captured by the *move*."""
     if board.is_en_passant(move):
         return 1
     else:
