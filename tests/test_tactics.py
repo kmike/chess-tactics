@@ -3,7 +3,6 @@ import pytest
 
 from chess_tactics.tactics import (
     can_be_captured,
-    get_hanging_after_move,
     get_hanging_pieces,
     is_fork,
     is_forking_move,
@@ -125,22 +124,6 @@ class TestHanging:
     def test_promotion(self):
         board = chess.Board(CAPTURE_WITH_PROMOTION)
         assert is_hanging(board, chess.E8)
-
-
-@pytest.mark.parametrize(
-    ["fen", "move_san", "color", "expected"],
-    [
-        ("k6q/6b1/8/4p3/8/2B5/1Q6/1K6 w - - 0 1", "Bxe5", None, {chess.E5}),
-        ("k6q/6b1/8/4p3/8/2B5/1Q6/1K6 w - - 0 1", "Bxe5", chess.BLACK, {chess.G7}),
-        ("k6q/6b1/8/4p3/8/2B5/1Q6/1K6 w - - 0 1", "Kc2", None, {}),
-        # Kings are not considered as hanging when they're in check
-        ("k6q/6b1/8/4p3/8/2B5/1Q6/1K6 w - - 0 1", "Qg2", chess.BLACK, {}),
-    ],
-)
-def test_get_hanging_after_move(fen, move_san, color, expected):
-    board = chess.Board(fen)
-    move = board.parse_san(move_san)
-    assert get_hanging_after_move(board, move, color) == chess.SquareSet(expected)
 
 
 class TestCanBeCaptured:

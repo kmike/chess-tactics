@@ -22,21 +22,6 @@ def get_hanging_pieces(board: chess.Board, color: chess.Color) -> chess.SquareSe
     return chess.SquareSet(p for p in pieces if is_hanging(board, p))
 
 
-def get_hanging_after_move(
-    board: chess.Board, move: chess.Move, color=None
-) -> chess.SquareSet:
-    """
-    Return a SquareSet of pieces of a certain color which are hanging
-    after a *move*.
-    By default, the color of the moved piece is used.
-    """
-    if color is None:
-        color = board.color_at(move.from_square)
-    board_copy = board.copy()
-    board_copy.push(move)
-    return get_hanging_pieces(board_copy, color)
-
-
 def can_be_captured(board: chess.Board, square: chess.Square) -> bool:
     """Return True if a piece at *square* can be captured. This includes
     cases where
