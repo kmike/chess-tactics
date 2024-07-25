@@ -221,6 +221,47 @@ def missed_mate_n_plus(
     )
 
 
+def missed_sacrifice(
+    board: chess.Board,
+    move: chess.Move,
+    best_moves: list[chess.Move],
+) -> bool:
+    """
+    Return True if one of *best_moves* is a sacrifice, while *move* isn't.
+    This includes both real sacrifices and sham (pseudo) sacrifices.
+    """
+    if move in best_moves:
+        return False
+
+    def _is_sacrifice(b, m) -> bool:
+        # the moved piece is sacrificed by capturing something
+        # fixme: don't consider discovered attacks sacrifices
+        if started_bad_trade(b, m):
+            return True
+
+        # Moved piece is put into hanging position. We should
+        # start detecting relative pins before implementing it, because
+        # otherwise many simple tactics involving pins would be considered
+        # sacrifices.
+        # if hung_moved_piece(b, m):
+        #     return True
+
+        # Another piece is left hanging. The issue is that in practice
+        # the code below usually shows cases which don't look
+        # like sacrifices (?). It needs more investigation.
+        # if hung_other_piece(b, m):
+        #     return True
+
+        # The move drops protection for another piece. This also doesn't work
+        # as-is, results don't look good.
+        # if left_piece_hanging(b, m):
+        #     return True
+
+        return False
+
+    return any(_is_sacrifice(board, move) for move in best_moves)
+
+
 def _moved_piece_should_be_captured_because_it_hangs(
     board: chess.Board,
     move: chess.Move,

@@ -14,6 +14,7 @@ from chess_tactics.mistakes import (
     missed_fork,
     missed_mate_n,
     missed_mate_n_plus,
+    missed_sacrifice,
     started_bad_trade,
 )
 
@@ -410,6 +411,13 @@ def test_hung_other_piece(fen, move_san, best_moves_san, expected):
             ["Rc3"],
             True,
         ),
+        # Assorted example 8: looks almost like a fork, but not really
+        (
+            "r2q1rk1/1p1bbppp/p1n1p3/4P3/3P4/3B1N2/P1Q2PPP/R1B2RK1 b - - 2 13",
+            "f6",
+            ["Nb4"],
+            False,
+        ),
     ],
 )
 def test_missed_fork(fen, move_san, best_moves_san, fork_missing):
@@ -675,3 +683,96 @@ def test_missed_mate_n(score, best_score, n, expected):
 )
 def test_missed_mane_n_plus(score, best_score, n, expected):
     assert missed_mate_n_plus(score, best_score, n) is expected
+
+
+@pytest.mark.parametrize(
+    ["fen", "move_san", "best_moves_san", "expected"],
+    [
+        # Assorted example 1
+        (
+            "1k5r/pbpr1p2/1p5p/n2pP3/3P4/2P2NPp/2Q2P1P/RR4K1 w - - 2 19",
+            "Ra4",
+            ["Rxa5"],
+            True,
+        ),
+        (
+            "1k5r/pbpr1p2/1p5p/n2pP3/3P4/2P2NPp/2Q2P1P/RR4K1 w - - 2 19",
+            "Rxa5",
+            ["Rxa5"],
+            False,
+        ),
+        # Assorted example 2: setting up mate
+        (
+            "r1b2rk1/pp5p/4ppB1/4N1Qn/8/8/PP3PPP/3q1RK1 w - - 0 21",
+            "Qxh5",
+            ["Bxh7+"],
+            True,
+        ),
+        # Assorted example 3: another mate
+        (
+            "2k3nr/pp1rpp1p/2pp2p1/4P3/1RP5/2PB1Q2/q4PPP/1R4K1 w - - 2 16",
+            "Qxf7",
+            ["Qxc6+"],
+            True,
+        ),
+        # Assorted example 4: pawn is not protected because of tactics
+        (
+            "2kr3r/pp2pp2/2q2bp1/8/2PPR3/1P3NPp/P3QP1P/R5K1 b - - 0 19",
+            "g5",
+            ["Bxd4"],
+            True,
+        ),
+        # Assorted example 5: not a real sacrifice because of a fork in the end
+        (
+            "r1bq1rk1/pp2bppp/2n1p3/1Bp1P3/3P4/P1P2N2/5PPP/R1BQK2R b KQ - 3 10",
+            "Bd7",
+            ["Nxd4"],
+            True,
+        ),
+        # Assorted example 6: setting up a pin
+        (
+            "rnb2rk1/pp1q3p/4p1p1/4P1N1/3P4/3B4/P1Q2PP1/1R3RK1 w - - 0 20",
+            "Bb5",
+            ["Nxe6"],
+            True,
+        ),
+        # Assorted example 7: greek gift
+        (
+            "rnbq1rk1/ppp2ppp/4p3/3nP3/1b1P4/2NB1N2/PP3PPP/R1BQK2R w KQ - 1 9",
+            "Bd2",
+            ["Bxh7+"],
+            True,
+        ),
+        # Assorted example 8: trying to defend
+        (
+            "1r5r/p3kpp1/2Qbpn1p/3p1NB1/3P2P1/3q1N1P/PP3P2/4R1K1 b - - 1 22",
+            "Kf8",
+            ["Qxf5"],
+            True,
+        ),
+        # Assorted example 9: this should be classified as a discovered
+        # attack instead (not implemented)
+        pytest.param(
+            "r2qr1k1/pp1n1pbp/3p1np1/2pP1b2/1PP5/P1N2N2/4BPPP/R1BQR1K1 b - - 0 12",
+            "b6",
+            ["Nxd5"],
+            False,
+            marks=pytest.mark.xfail(
+                reason="discovered attacks detection is not implemented"
+            ),
+        ),
+        # Assorted example 10: another discovered attack
+        pytest.param(
+            "r4rk1/5p2/pqb2B1p/3p2p1/P1pP4/2P1P3/2B2PPP/3Q1RK1 b - - 0 19",
+            "Qb2",
+            ["Bxa4"],
+            False,
+            marks=pytest.mark.xfail(
+                reason="discovered attacks detection is not implemented"
+            ),
+        ),
+    ],
+)
+def test_missed_sacrifice(fen, move_san, best_moves_san, expected):
+    board, move, best_moves = _board_move_best_moves(fen, move_san, best_moves_san)
+    assert missed_sacrifice(board, move, best_moves) is expected
