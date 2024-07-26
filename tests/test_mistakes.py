@@ -6,6 +6,7 @@ from chess.engine import Cp, Mate
 
 from chess_tactics.mistakes import (
     hanging_piece_not_captured,
+    hung_fork,
     hung_mate_n,
     hung_mate_n_plus,
     hung_moved_piece,
@@ -17,6 +18,7 @@ from chess_tactics.mistakes import (
     missed_sacrifice,
     started_bad_trade,
 )
+from chess_tactics.move_utils import san_list_to_moves
 
 from .fens import EXAMPLE_01
 
@@ -426,6 +428,98 @@ def test_missed_fork(fen, move_san, best_moves_san, fork_missing):
 
 
 @pytest.mark.parametrize(
+    ["fen", "move_san", "best_opponent_moves_san", "pv_san_list", "expected"],
+    [
+        # Example 1
+        (
+            "r3k2r/ppp2pp1/2n1q2p/3N3P/4n3/1P3N2/PKP1QPP1/3R3R b kq - 0 15",
+            "Nd6",
+            ["Nxc7"],
+            ["O-O-O", "Nc3", "f5", "Nxe4", "fxe4", "Nd2"],
+            True,
+        ),
+        # Example 1, modified (best move for the opponent is not a fork)
+        (
+            "r3k2r/ppp2pp1/2n1q2p/3N3P/4n3/1P3N2/PKP1QPP1/3R3R b kq - 0 15",
+            "Nd6",
+            ["Qb5"],
+            ["O-O-O", "Nc3", "f5", "Nxe4", "fxe4", "Nd2"],
+            False,
+        ),
+        # Example 1, modified (opponent forks even after the best response)
+        (
+            "r3k2r/ppp2pp1/2n1q2p/3N3P/4n3/1P3N2/PKP1QPP1/3R3R b kq - 0 15",
+            "Nd6",
+            ["Nxc7"],
+            ["Qf5", "Nxc7"],
+            False,
+        ),
+        # Example 1, modified (principal variation is not available)
+        (
+            "r3k2r/ppp2pp1/2n1q2p/3N3P/4n3/1P3N2/PKP1QPP1/3R3R b kq - 0 15",
+            "Nd6",
+            ["Nxc7"],
+            None,
+            True,
+        ),
+        # Example 1, modified (principal variation is not fully available)
+        (
+            "r3k2r/ppp2pp1/2n1q2p/3N3P/4n3/1P3N2/PKP1QPP1/3R3R b kq - 0 15",
+            "Nd6",
+            ["Nxc7"],
+            ["O-O-O"],
+            True,
+        ),
+        # Example 2, simple
+        (
+            "r1b2rk1/pp3p1p/4p1p1/4N1Qn/3q4/3B4/PP3PPP/R4RK1 w - - 0 19",
+            "Rad1",
+            ["fxf6"],
+            ["Qe3", "Qxb2", "Rfe1"],
+            True,
+        ),
+        # Example 3
+        (
+            "r4r1k/pp1nq1pp/3p4/2pR4/2Q5/5P2/PPP2PPP/2K2B1R w - - 1 14",
+            "Bd3",
+            ["Nxb6"],
+            ["Qe4", "Qf6", "Rd1", "Rad8", "Bd3"],
+            True,
+        ),
+        # Example 4
+        (
+            "8/prp1R3/8/3kp1r1/5p2/5K2/P4P2/8 w - - 0 34",
+            "a3",
+            ["Rxb3"],
+            ["Rd7+", "Ke6", "Rh7", "Rg1"],
+            True,
+        ),
+        # Example 5 (queen fork)
+        (
+            "6r1/4k2p/p1q1pn1Q/1p6/8/PP3P2/7P/5R1K b - - 0 30",
+            "Ng4",
+            ["Qxh7"],
+            ["Qc2", "Rg1", "Rxg1+", "Kxg1"],
+            True,
+        ),
+        # Example 6 (this also hangs a piece and hangs a mate)
+        (
+            "r1b2r2/5k2/p3qp2/2p1p2R/P3P2B/2P2QK1/8/R7 w - - 2 34",
+            "Qg4",
+            ["Qexg4"],
+            ["Rh7+", "Kg8"],
+            True,
+        ),
+    ],
+)
+def test_hung_fork(fen, move_san, best_opponent_moves_san, pv_san_list, expected):
+    board, move, _ = _board_move_best_moves(fen, move_san)
+    best_opponent_moves = _best_opponent_moves(board, move, best_opponent_moves_san)
+    pv = san_list_to_moves(board, pv_san_list) if pv_san_list else None
+    assert hung_fork(board, move, best_opponent_moves, pv) is expected
+
+
+@pytest.mark.parametrize(
     ["fen", "move_san", "best_moves_san", "expected"],
     [
         # Basic cases
@@ -586,7 +680,7 @@ def test_left_piece_hanging(fen, move_san, best_moves_san, expected):
 
 
 def _board_move_best_moves(
-    fen: str, move_san: str, best_moves_san: Optional[list[str]]
+    fen: str, move_san: str, best_moves_san: Optional[list[str]] = None
 ) -> tuple[chess.Board, chess.Move, list[chess.Move]]:
     board = chess.Board(fen)
     move = board.parse_san(move_san)

@@ -162,6 +162,34 @@ def missed_fork(
     return any(is_forking_move(board, m) for m in best_moves)
 
 
+def hung_fork(
+    board: chess.Board,
+    move: chess.Move,
+    best_opponent_moves: list[chess.Move],
+    pv: Optional[list[chess.Move]] = None,
+) -> bool:
+    """Return True if a *move* allowed opponent to make a fork"""
+    if not best_opponent_moves:
+        return False
+
+    # one of the best responses for the opponent should be to fork us
+    board_after = board.copy()
+    board_after.push(move)
+    if not any(is_forking_move(board_after, m) for m in best_opponent_moves):
+        return False
+
+    # if after the best response opponent still forks us, the move which
+    # is made is not hanging a fork
+    if pv and len(pv) >= 2:
+        best_move, best_move_response = pv[:2]
+        board_after = board.copy()
+        board_after.push(best_move)
+        if is_forking_move(board_after, best_move_response):
+            return False
+
+    return True
+
+
 def hung_mate_n(
     pov_white_score: chess.engine.Score,
     pov_white_best_score: chess.engine.Score,
