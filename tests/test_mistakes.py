@@ -4,6 +4,7 @@ import chess
 import pytest
 from chess.engine import Cp, Mate
 
+from chess_tactics.lichess_game import get_lichess_analyze_link
 from chess_tactics.mistakes import (
     hanging_piece_not_captured,
     hung_fork,
@@ -18,7 +19,7 @@ from chess_tactics.mistakes import (
     missed_sacrifice,
     started_bad_trade,
 )
-from chess_tactics.move_utils import san_list_to_moves
+from chess_tactics.move_utils import moves_to_san_list, san_list_to_moves
 
 from .fens import EXAMPLE_01
 
@@ -185,6 +186,13 @@ def test_hanging_piece_not_captured(fen, move_san, best_moves_san, expected):
             "r1b2r2/5k2/p3qp2/2p1p2R/P3P2B/2P2QK1/8/R7 w - - 2 34",
             "Qg4",
             [],
+            True,
+        ),
+        # Example from left_piece_hanging tests
+        (
+            "r3k2r/1p3pb1/p1n1p1pp/3q4/3PnB2/N2Q1N1P/PP3PP1/2R1R1K1 b kq - 1 17",
+            "Nc5",
+            ["Rxc5"],
             True,
         ),
     ],
@@ -539,8 +547,9 @@ def test_hung_fork(fen, move_san, best_opponent_moves_san, pv_san_list, expected
         # Trading off the hanging piece is a way to save it
         ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxg7", ["Bxa7"], False),
         ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxg7", None, False),
-        # it matters what to trade for
-        ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxf2", ["Bxa7"], True),
+        # it matters what to trade for, but if the hanging piece is moved,
+        # it's not "left hanging"
+        ("k6p/n5b1/8/8/3B2n1/8/5p2/1K6 w - - 0 1", "Bxf2", ["Bxa7"], False),
         # If there are multiple pieces hanging, saving one of them
         # is better than saving nothing.
         pytest.param(
@@ -567,7 +576,7 @@ def test_hung_fork(fen, move_san, best_opponent_moves_san, pv_san_list, expected
                 "saved enough material."
             ),
         ),
-        # If piece of different value hang, the most valuable should be
+        # If pieces of different value are hanging, the most valuable should be
         # saved first
         ("kr6/pn5p/1p4p1/2p2B2/3R4/8/8/1K6 w - - 0 1", "Rf4", ["Rd5"], False),
         ("kr6/pn5p/1p4p1/2p2B2/3R4/8/8/1K6 w - - 0 1", "Bg4", ["Rd5"], True),
@@ -577,6 +586,10 @@ def test_hung_fork(fen, move_san, best_opponent_moves_san, pv_san_list, expected
         ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Qc6", ["Qxa4"], True),
         ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Bxa4", ["Qxa4"], False),
         ("8/3Q2b1/1K6/4B3/r7/8/8/3B1k2 w - - 0 1", "Qd4", ["Qxa4"], True),
+        # If the moved piece was hanging before the move, and hangs after,
+        # it's considered "hang_moved_piece", not "left_piece_hanging"
+        ("1k6/5p2/1p6/2N5/8/8/5K2/8 w - - 0 1", "Ne6", ["Nd7"], False),
+        ("1k6/5p2/1p2p3/2N5/8/8/5K2/8 w - - 0 1", "Ne6", ["Nd7"], False),
         # Assorted example 1
         (
             "rn1qkb1r/pp2ppp1/2p2np1/8/2pP4/2N5/PPQ1PPPP/R1B1KB1R w KQkq - 0 8",
@@ -660,13 +673,21 @@ def test_hung_fork(fen, move_san, best_opponent_moves_san, pv_san_list, expected
             True,
             marks=pytest.mark.xfail(),
         ),
-        # this one is actually important - you can save value by trading the
-        # hanging piece
+        # you can save value by trading the hanging piece
         pytest.param(
             "r3k2r/ppq1pp2/2n2bpp/1B1p4/3Pb3/1PP2N2/P2N1PPP/R2QR1K1 b kq - 2 13",
             "h5",
             ["Bxf3"],
             True,
+        ),
+        # A piece was hanging before the move, then it's moved, but also
+        # to a square where it can be captured. This case should be classified
+        # as hang_moved_piece, not as left_piece_hangin.
+        pytest.param(
+            "r3k2r/1p3pb1/p1n1p1pp/3q4/3PnB2/N2Q1N1P/PP3PP1/2R1R1K1 b kq - 1 17",
+            "Nc5",
+            ["Ng5"],
+            False,
         ),
     ],
 )
@@ -674,8 +695,11 @@ def test_left_piece_hanging(fen, move_san, best_moves_san, expected):
     board, move, best_moves = _board_move_best_moves(fen, move_san, best_moves_san)
     if left_piece_hanging(board, move, best_moves) is not expected:
         print(board.fen())
+        print(get_lichess_analyze_link(board.fen()))
         print(board)
-        print(f"{move=} {best_moves=} {expected=}")
+        print(
+            f"move={board.san(move)} best_moves={moves_to_san_list(board, best_moves)} {expected=}"
+        )
         raise AssertionError()
 
 

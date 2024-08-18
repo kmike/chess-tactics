@@ -53,6 +53,11 @@ def get_user_colors(game) -> dict[Optional[str], chess.Color]:
     }
 
 
+def get_lichess_analyze_link(fen: str) -> str:
+    fen_escaped = fen.replace(" ", "_")
+    return f"https://lichess.org/analysis/standard/{fen_escaped}"
+
+
 # def get_winner(game):
 #     if game["status"] in {"draw", "stalemate"}:
 #         return None

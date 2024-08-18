@@ -110,8 +110,13 @@ def left_piece_hanging(
 
     * there was a hanging piece on the board (e.g. because opponent just
       attacked it),
-    * *move* still left it hanging (by not moving it, and not defending it),
+    * *move* still left it hanging, by not moving it, and not defending it.
     * the best move was not to let it hang.
+
+    Cases where a hanging piece is moved to another square where
+    it can be captured are handled by :func:`hung_moved_piece`.
+    This function (:func:`left_piece_hanging`) returns False in such
+    cases - the piece is not "left" hanging.
     """
     if best_moves and move in best_moves:
         return False
@@ -124,6 +129,12 @@ def left_piece_hanging(
 
     # there should be some hanging pieces now
     if not hanging_now:
+        return False
+
+    # the hanging piece is moved - it's not "left" hanging;
+    # even if the move hangs it again, it's going to be a separate mistake
+    # ("hung_moved_piece").
+    if all(move.from_square == s for s in hanging_now):
         return False
 
     hanging_after_move_value = _hanging_after_move_value(
@@ -140,7 +151,7 @@ def left_piece_hanging(
         )
 
         # if we fail to capture more, but still saved the hanging piece, it's
-        # a separate mistake.
+        # a separate mistake (hanging_piece_not_captured?).
         hanging_after_best_move_value = max(hanging_after_best_move_value, 0)
 
         # Basic logic for now. It could happen that
@@ -149,6 +160,7 @@ def left_piece_hanging(
         # In this case, we return True only if the value hanged by the actual
         # move is even more than the hanging_after_best_move_value.
 
+    # TODO: best opponent move should be to capture the hanging piece?
     return hanging_after_best_move_value < hanging_after_move_value
 
 
